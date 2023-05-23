@@ -16,7 +16,7 @@ lazy val root = (project in file("."))
       preservicaClientFs2,
       scalaTest % Test,
       mockito % Test
-    )]
+    )
   )
 
 (assembly / assemblyMergeStrategy) := {
