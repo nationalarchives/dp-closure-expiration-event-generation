@@ -13,7 +13,7 @@ object Processor {
       contentClient: ContentClient[IO],
       config: Config
   ): IO[List[SendMessageResponse]] = for {
-    documents <- contentClient.findExpiredClosedDocuments(config.secretName)
-    res <- documents.map(entity => sqsClient.sendMessage(config.queueUrl)(entity)).sequence
+    expiredClosedEntities <- contentClient.findExpiredClosedDocuments(config.secretName)
+    res <- expiredClosedEntities.map(entity => sqsClient.sendMessage(config.queueUrl)(entity)).sequence
   } yield res
 }
