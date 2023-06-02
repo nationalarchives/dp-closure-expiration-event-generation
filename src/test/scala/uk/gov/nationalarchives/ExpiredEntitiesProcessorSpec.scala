@@ -95,7 +95,8 @@ class ExpiredEntitiesProcessorSpec extends AnyFlatSpec with MockitoSugar {
       .thenReturn(IO.raiseError(new RuntimeException("PreservicaError")))
     when(sqsClient.sendMessage(any[String])(any[Entity])(any[Encoder[Entity]])).thenReturn(IO(sendMessageResponse))
 
-    val ex = intercept[RuntimeException](findExpiredEntitiesAndSendToSqs(sqsClient, preservicaClient, config).unsafeRunSync())
+    val ex =
+      intercept[RuntimeException](findExpiredEntitiesAndSendToSqs(sqsClient, preservicaClient, config).unsafeRunSync())
 
     ex.getMessage should equal("PreservicaError")
   }
@@ -110,7 +111,8 @@ class ExpiredEntitiesProcessorSpec extends AnyFlatSpec with MockitoSugar {
     when(sqsClient.sendMessage(any[String])(any[Entity])(any[Encoder[Entity]]))
       .thenReturn(IO.raiseError(new RuntimeException("SQSError")))
 
-    val ex = intercept[RuntimeException](findExpiredEntitiesAndSendToSqs(sqsClient, preservicaClient, config).unsafeRunSync())
+    val ex =
+      intercept[RuntimeException](findExpiredEntitiesAndSendToSqs(sqsClient, preservicaClient, config).unsafeRunSync())
 
     ex.getMessage should equal("SQSError")
   }
