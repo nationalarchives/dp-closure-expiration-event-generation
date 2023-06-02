@@ -5,7 +5,7 @@ import cats.effect.unsafe.implicits.global
 import io.circe.Encoder
 import org.mockito.ArgumentMatchers._
 import org.mockito.{ArgumentCaptor, MockitoSugar}
-import uk.gov.nationalarchives.Processor._
+import uk.gov.nationalarchives.ExpiredEntitiesProcessor._
 import org.scalatest.flatspec.AnyFlatSpec
 import uk.gov.nationalarchives.dp.client.ContentClient
 import uk.gov.nationalarchives.dp.client.Entities.Entity
@@ -16,9 +16,9 @@ import uk.gov.nationalarchives.Lambda.Config
 import java.util.UUID
 import scala.jdk.CollectionConverters._
 
-class ProcessorSpec extends AnyFlatSpec with MockitoSugar {
+class ExpiredEntitiesProcessorSpec extends AnyFlatSpec with MockitoSugar {
 
-  "processDocuments" should "send messages to sqs" in {
+  "findExpiredEntitiesAndSendToSqs" should "send messages to sqs" in {
     val sqsClient = mock[DASQSClient[IO]]
     val preservicaClient = mock[ContentClient[IO]]
     val entityOneRef = UUID.randomUUID()
@@ -34,7 +34,7 @@ class ProcessorSpec extends AnyFlatSpec with MockitoSugar {
     when(sqsClient.sendMessage(any[String])(messageCaptor.capture())(any[Encoder[Entity]]))
       .thenReturn(IO(sendMessageResponse("1")), IO(sendMessageResponse("2")))
 
-    val response = processDocuments(sqsClient, preservicaClient, config).unsafeRunSync()
+    val response = findExpiredEntitiesAndSendToSqs(sqsClient, preservicaClient, config).unsafeRunSync()
 
     response.size should equal(2)
     response.head.messageId() should equal("1")
@@ -50,7 +50,7 @@ class ProcessorSpec extends AnyFlatSpec with MockitoSugar {
     verify(sqsClient, times(2)).sendMessage(any[String])(any[Entity])(any[Encoder[Entity]])
   }
 
-  "processDocuments" should "not send to the sqs queue if no entities are returned" in {
+  "findExpiredEntitiesAndSendToSqs" should "not send to the sqs queue if no entities are returned" in {
     val sqsClient = mock[DASQSClient[IO]]
     val preservicaClient = mock[ContentClient[IO]]
     val sendMessageResponse = SendMessageResponse.builder().messageId("1").build()
@@ -60,14 +60,14 @@ class ProcessorSpec extends AnyFlatSpec with MockitoSugar {
     when(sqsClient.sendMessage(any[String])(any[Entity])(any[Encoder[Entity]]))
       .thenReturn(IO(sendMessageResponse))
 
-    val response = processDocuments(sqsClient, preservicaClient, config).unsafeRunSync()
+    val response = findExpiredEntitiesAndSendToSqs(sqsClient, preservicaClient, config).unsafeRunSync()
 
     verify(preservicaClient, times(1)).findExpiredClosedDocuments(any[String])
     verify(sqsClient, times(0)).sendMessage(any[String])(any[Entity])(any[Encoder[Entity]])
     response.isEmpty should be(true)
   }
 
-  "processDocuments" should "send the correct config values to the clients" in {
+  "findExpiredEntitiesAndSendToSqs" should "send the correct config values to the clients" in {
     val sqsClient = mock[DASQSClient[IO]]
     val preservicaClient = mock[ContentClient[IO]]
     val sendMessageResponse = SendMessageResponse.builder().messageId("1").build()
@@ -80,12 +80,12 @@ class ProcessorSpec extends AnyFlatSpec with MockitoSugar {
     when(sqsClient.sendMessage(queueUrlCaptor.capture())(any[Entity])(any[Encoder[Entity]]))
       .thenReturn(IO(sendMessageResponse))
 
-    processDocuments(sqsClient, preservicaClient, config).unsafeRunSync()
+    findExpiredEntitiesAndSendToSqs(sqsClient, preservicaClient, config).unsafeRunSync()
     secretNameCaptor.getValue should equal("secretName")
     queueUrlCaptor.getValue should equal("queueUrl")
   }
 
-  "processDocuments" should "return an error if the preservica client returns an error" in {
+  "findExpiredEntitiesAndSendToSqs" should "return an error if the preservica client returns an error" in {
     val sqsClient = mock[DASQSClient[IO]]
     val preservicaClient = mock[ContentClient[IO]]
     val sendMessageResponse = SendMessageResponse.builder().messageId("1").build()
@@ -95,12 +95,12 @@ class ProcessorSpec extends AnyFlatSpec with MockitoSugar {
       .thenReturn(IO.raiseError(new RuntimeException("PreservicaError")))
     when(sqsClient.sendMessage(any[String])(any[Entity])(any[Encoder[Entity]])).thenReturn(IO(sendMessageResponse))
 
-    val ex = intercept[RuntimeException](processDocuments(sqsClient, preservicaClient, config).unsafeRunSync())
+    val ex = intercept[RuntimeException](findExpiredEntitiesAndSendToSqs(sqsClient, preservicaClient, config).unsafeRunSync())
 
     ex.getMessage should equal("PreservicaError")
   }
 
-  "processDocuments" should "return an error if the sqs client returns an error" in {
+  "findExpiredEntitiesAndSendToSqs" should "return an error if the sqs client returns an error" in {
     val sqsClient = mock[DASQSClient[IO]]
     val preservicaClient = mock[ContentClient[IO]]
     val config = Config("http://preservicaUrl", "secretName", "queueUrl")
@@ -110,7 +110,7 @@ class ProcessorSpec extends AnyFlatSpec with MockitoSugar {
     when(sqsClient.sendMessage(any[String])(any[Entity])(any[Encoder[Entity]]))
       .thenReturn(IO.raiseError(new RuntimeException("SQSError")))
 
-    val ex = intercept[RuntimeException](processDocuments(sqsClient, preservicaClient, config).unsafeRunSync())
+    val ex = intercept[RuntimeException](findExpiredEntitiesAndSendToSqs(sqsClient, preservicaClient, config).unsafeRunSync())
 
     ex.getMessage should equal("SQSError")
   }

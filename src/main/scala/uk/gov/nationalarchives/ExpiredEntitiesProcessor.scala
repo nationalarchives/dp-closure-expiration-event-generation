@@ -7,8 +7,8 @@ import uk.gov.nationalarchives.dp.client.ContentClient
 import io.circe.generic.auto._
 import cats.implicits._
 
-object Processor {
-  def processDocuments(
+object ExpiredEntitiesProcessor {
+  def findExpiredEntitiesAndSendToSqs(
       sqsClient: DASQSClient[IO],
       contentClient: ContentClient[IO],
       config: Config

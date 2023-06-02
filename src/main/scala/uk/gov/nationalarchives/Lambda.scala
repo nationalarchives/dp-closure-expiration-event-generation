@@ -7,7 +7,7 @@ import pureconfig._
 import pureconfig.generic.auto._
 import pureconfig.module.catseffect.syntax._
 import uk.gov.nationalarchives.Lambda.Config
-import uk.gov.nationalarchives.Processor.processDocuments
+import uk.gov.nationalarchives.ExpiredEntitiesProcessor.findExpiredEntitiesAndSendToSqs
 import uk.gov.nationalarchives.dp.client.fs2.Fs2Client.contentClient
 
 import java.io.{InputStream, OutputStream}
@@ -19,7 +19,7 @@ class Lambda extends RequestStreamHandler {
     val result = for {
       config <- ConfigSource.default.loadF[IO, Config]()
       contentClient <- contentClient(config.preservicaUrl)
-      res <- processDocuments(sqsClient, contentClient, config)
+      res <- findExpiredEntitiesAndSendToSqs(sqsClient, contentClient, config)
     } yield res
     result.unsafeRunSync()
   }
